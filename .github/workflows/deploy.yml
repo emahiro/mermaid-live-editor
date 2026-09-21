@@ -3,16 +3,25 @@ on:
   push:
     branches:
       - master
+      - emahiro-main
   pull_request:
     branches:
       - master
       - develop
+      - emahiro-main
+  workflow_dispatch:
+
+# Allow one concurrent deployment
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -23,6 +32,7 @@ jobs:
           cache: pnpm
 
       - name: Setup Pages
+        id: pages
         uses: actions/configure-pages@v5
         with:
           static_site_generator: sveltekit
@@ -34,6 +44,7 @@ jobs:
           MERMAID_RENDERER_URL: 'https://mermaid.ink'
           MERMAID_KROKI_RENDERER_URL: 'https://kroki.io'
           MERMAID_IS_ENABLED_MERMAID_CHART_LINKS: 'true'
+          MERMAID_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: |
           export DEPLOY=true
           [ "$GITHUB_EVENT_NAME" != "pull_request" ] && rm -rf docs/_app/
@@ -46,7 +57,7 @@ jobs:
           path: ./docs
 
   deploy:
-    if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/emahiro-main' || github.event_name == 'workflow_dispatch' }}
     needs: build
     runs-on: ubuntu-latest
     environment:
